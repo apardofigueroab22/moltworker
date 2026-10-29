@@ -7,15 +7,18 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   unit:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 22
           cache: npm
@@ -38,6 +41,7 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    if: github.event_name != 'pull_request'
     permissions:
       contents: write
       pull-requests: write
@@ -63,10 +67,10 @@ jobs:
     name: e2e (${{ matrix.config.name }})
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 22
           cache: npm
@@ -75,7 +79,7 @@ jobs:
         run: npm ci
 
       - name: Install Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd
         with:
           terraform_wrapper: false
 
@@ -83,10 +87,10 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Install playwright-cli
-        run: npm install -g @playwright/cli
+        run: npm install -g @playwright/cli@0.1.22
 
       - name: Install cctr
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32
         with:
           tool: cctr
 
@@ -168,7 +172,7 @@ jobs:
 
       - name: Upload video to e2e-artifacts branch
         if: always() && steps.convert.outputs.has_video == 'true'
-        uses: peaceiris/actions-gh-pages@v4
+        uses: peaceiris/actions-gh-pages@84c30a85c19949d7eee79c4ff27748b70285e453
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: /tmp/e2e-video-upload
@@ -177,7 +181,7 @@ jobs:
 
       - name: Delete old video comments
         if: always() && github.event_name == 'pull_request'
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b
         with:
           script: |
             const marker = '<!-- e2e-video-${{ matrix.config.name }} -->';
@@ -198,7 +202,7 @@ jobs:
 
       - name: Comment on PR with video
         if: always() && github.event_name == 'pull_request' && steps.prepare.outputs.video_url
-        uses: peter-evans/create-or-update-comment@v4
+        uses: peter-evans/create-or-update-comment@71345be0265236311c031f5c7866368bd1eff043
         with:
           issue-number: ${{ github.event.pull_request.number }}
           body: |

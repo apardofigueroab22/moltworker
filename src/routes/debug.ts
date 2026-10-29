@@ -206,10 +206,6 @@ debug.get('/logs', async (c) => {
 
 // GET /debug/ws-test - Interactive WebSocket debug page
 debug.get('/ws-test', async (c) => {
-  const host = c.req.header('host') || 'localhost';
-  const protocol = c.req.header('x-forwarded-proto') || 'https';
-  const wsProtocol = protocol === 'https' ? 'wss' : 'ws';
-
   const html = `<!DOCTYPE html>
 <html>
 <head>
@@ -242,13 +238,17 @@ debug.get('/ws-test', async (c) => {
   <div id="log"></div>
   
   <script>
-    const wsUrl = '${wsProtocol}://${host}/';
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = wsProtocol + '//' + window.location.host + '/';
     let ws = null;
     
     const log = (msg, className = '') => {
       const logEl = document.getElementById('log');
       const time = new Date().toISOString().substr(11, 12);
-      logEl.innerHTML += '<span class="' + className + '">[' + time + '] ' + msg + '</span>\\n';
+      const line = document.createElement('span');
+      line.className = ['error', 'sent', 'received', 'info'].includes(className) ? className : '';
+      line.textContent = '[' + time + '] ' + msg;
+      logEl.append(line, document.createTextNode('\\n'));
       logEl.scrollTop = logEl.scrollHeight;
     };
     
@@ -291,7 +291,7 @@ debug.get('/ws-test', async (c) => {
     };
     
     document.getElementById('clear').onclick = () => {
-      document.getElementById('log').innerHTML = '';
+      document.getElementById('log').textContent = '';
     };
     
     document.getElementById('send').onclick = () => {
